@@ -1,6 +1,7 @@
 'use strict';
 
 import Color from "./lib/color";
+import Character from "./lib/character";
 
 class TERMINAL {
     _buffer = [];
@@ -27,7 +28,7 @@ class TERMINAL {
     _updateBuffer() {
         let x = this.bufferWidth;
         let y = this.bufferHeight;
-        let buffer = [...Array(y)].map(_=>Array(x).fill({}));
+        let buffer = [...Array(y)].map(_=>Array(x).fill(new Character()));
         let old = [];
         let counter = 0;
 
