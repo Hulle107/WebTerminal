@@ -1,87 +1,75 @@
-'use strict';
+`use strict`;
 
 import TerminalColor from "./lib/terminalColor";
 import TerminalField from "./lib/terminalField";
 
-const EMPTY_CHARACTER = '';
-const DEFUALT_BACKGROUND_COLOR = new TerminalColor();
-const DEFAULT_FOREGROUND_COLOR = new TerminalColor();
+const EMPTY_CHARACTER = ``;
+const DEFUALT_BACKGROUND_COLOR = TerminalColor.Black;
+const DEFAULT_FOREGROUND_COLOR = TerminalColor.White;
 
 class Terminal {
 
     /**
-     * Gets or sets the background color of the terminal.
      * @private
      * @type {TerminalColor}
      */
     _backgroundColor;
     /**
      * @private
-     * @type {TerminalField[][]}
+     * @type {TerminalField[]}
      */
     _buffer;
     /**
-     * Gets or sets the height of the buffer area.
      * @private
      * @type {number}
      */
     _bufferHeight;
     /**
-     * Gets or sets the width of the buffer area.
      * @private
      * @type {number}
      */
     _bufferWidth;
     /**
-     * Gets or sets the column position of the cursor within the buffer area.
      * @private
      * @type {number}
      */
     _cursorLeft;
     /**
-     * Gets or sets the height of the cursor within a character cell.
      * @private
      * @type {number}
      */
     _cursorSize;
     /**
-     * Gets or sets the row position of the cursor within the buffer area.
      * @private
      * @type {number}
      */
     _cursorTop;
     /**
-     * Gets or sets a value indicating whether the cursor is visible.
      * @private
      * @type {boolean}
      */
     _cursorVisible;
     /**
-     * Gets or sets the foreground color of the terminal.
      * @private
      * @type {TerminalColor}
      */
     _foregroundColor;
     /**
-     * Gets or sets the height of the terminal window area.
      * @private
      * @type {number}
      */
     _windowHeight;
     /**
-     * Gets or sets the leftmost position of the terminal window area relative to the screen buffer.
      * @private
      * @type {number}
      */
     _windowLeft;
     /**
-     * Gets or sets the top position of the terminal window area relative to the screen buffer.
      * @private
      * @type {number}
      */
     _windowTop;
     /**
-     * Gets or sets the width of the terminal window.
      * @private
      * @type {number}
      */
@@ -95,9 +83,32 @@ class Terminal {
      * @throws {TypeError}
      */
     set backgroundColor(color) {
-        if (color instanceof TerminalColor) throw new TypeError("The value of the backgroundColor property got assigned a wrong type.");
+        if (!color instanceof TerminalColor) throw new TypeError(`The value of the backgroundColor property got assigned a wrong type.`);
 
         this._backgroundColor = color;
+    }
+
+    /**
+     * Gets the buffer of the terminal.
+     */
+    get buffer() {
+        let width = this._bufferWidth;
+        let height = this._bufferHeight;
+        let size = this._buffer.length;
+
+        /**
+         * @type {TerminalField[][]}
+         */
+        let buffer = [...Array(height)].map(_=>Array(width).fill(new TerminalField()));
+
+        for (let i = 0; i < size; i++) {
+            y = i / width;
+            x = i % width;
+
+            buffer[y][x] = this._buffer[i];
+        }
+
+        return buffer;
     }
 
     /**
@@ -112,13 +123,13 @@ class Terminal {
      * @throws {RangeError}
      */
     set bufferHeight(number) {
-        if (!Number.isInteger(number)) throw new TypeError("The value of the bufferHeight property got assigned a wrong type.");
-        if (number <= 0) throw new RangeError("The value of the bufferHeight property is less than or equal to zero.");
-        if (number >= Number.MAX_SAFE_INTEGER) throw new RangeError("The value of the bufferHeight property is greater than or equal to Number.MAX_SAFE_INTEGER.");
-        if (number < this.windowTop + this.windowHeight) throw new RangeError("The value of the bufferHeight property is less than the windowTop property plus the windowHeight property.");
+        if (!Number.isInteger(number)) throw new TypeError(`The value of the bufferHeight property got assigned a wrong type.`);
+        if (number <= 0) throw new RangeError(`The value of the bufferHeight property is less than or equal to zero.`);
+        if (number >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the bufferHeight property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
+        if (number < this._windowTop + this._windowHeight) throw new RangeError(`The value of the bufferHeight property is less than the windowTop property plus the windowHeight property.`);
 
         this._bufferHeight = number;
-        this._updateBuffer();
+        this._resizeBuffer();
     }
 
     /**
@@ -130,13 +141,13 @@ class Terminal {
      * @throws {RangeError}
      */
     set bufferWidth(number) {
-        if (!Number.isInteger(number)) throw new TypeError("The value of the bufferWidth property got assigned a wrong type.");
-        if (number <= 0) throw new RangeError("The value of the bufferWidth property is less than or equal to zero.");
-        if (number >= Number.MAX_SAFE_INTEGER) throw new RangeError("The value of the bufferWidth property is greater than or equal to Number.MAX_SAFE_INTEGER.");
-        if (number < this.windowLeft + this.windowWidth) throw new RangeError("The value of the bufferWidth property is less than the windowLeft property plus the windowWidth property.");
+        if (!Number.isInteger(number)) throw new TypeError(`The value of the bufferWidth property got assigned a wrong type.`);
+        if (number <= 0) throw new RangeError(`The value of the bufferWidth property is less than or equal to zero.`);
+        if (number >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the bufferWidth property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
+        if (number < this._windowLeft + this._windowWidth) throw new RangeError(`The value of the bufferWidth property is less than the windowLeft property plus the windowWidth property.`);
 
         this._bufferWidth = number;
-        this._updateBuffer();
+        this._resizeBuffer();
     }
 
     /**
@@ -155,9 +166,9 @@ class Terminal {
      * @throws {RangeError}
      */
     set cursorLeft(number) {
-        if (!Number.isInteger(number)) throw new TypeError("The value of the cursorLeft property got assigned a wrong type.");
-        if (number < 0) throw new RangeError("The value of the cursorLeft property is less than zero.");
-        if (number > this.bufferWidth) throw new RangeError("The value of the cursorLeft property is greater than or equal to bufferWidth.");
+        if (!Number.isInteger(number)) throw new TypeError(`The value of the cursorLeft property got assigned a wrong type.`);
+        if (number < 0) throw new RangeError(`The value of the cursorLeft property is less than zero.`);
+        if (number > this._bufferWidth) throw new RangeError(`The value of the cursorLeft property is greater than or equal to bufferWidth.`);
 
         this._cursorLeft = number;
     }
@@ -171,16 +182,15 @@ class Terminal {
      * @throws {RangeError}
      */
     set cursorSize(procent) {
-        if (!Number.isInteger(procent)) throw new TypeError("The value of the cursorSize property got assigned a wrong type.");
-        if (procent < 1) throw new RangeError("The value of the cursorSize property is less than one.");
-        if (procent > 100) throw new RangeError("The value of the cursorSize property is greater than hundred.");
+        if (!Number.isInteger(procent)) throw new TypeError(`The value of the cursorSize property got assigned a wrong type.`);
+        if (procent < 1) throw new RangeError(`The value of the cursorSize property is less than one.`);
+        if (procent > 100) throw new RangeError(`The value of the cursorSize property is greater than hundred.`);
 
         this._cursorSize = procent;
     }
 
     /**
      * Gets or sets the row position of the cursor within the buffer area.
-     * @type {number}
      */
     get cursorTop() { return this._cursorTop; }
     /**
@@ -188,9 +198,9 @@ class Terminal {
      * @throws {RangeError}
      */
     set cursorTop(number) {
-        if (!Number.isInteger(number)) throw new TypeError("The value of the cursorTop property got assigned a wrong type.");
-        if (number < 0) throw new RangeError("The value of the cursorTop property is less than zero.");
-        if (number >= this.bufferHeight) throw new RangeError("The value of the cursorTop property is greater than or equal to bufferHeight.");
+        if (!Number.isInteger(number)) throw new TypeError(`The value of the cursorTop property got assigned a wrong type.`);
+        if (number < 0) throw new RangeError(`The value of the cursorTop property is less than zero.`);
+        if (number >= this._bufferHeight) throw new RangeError(`The value of the cursorTop property is greater than or equal to bufferHeight.`);
 
         this._cursorTop = number;
     }
@@ -204,7 +214,7 @@ class Terminal {
      * @throws {TypeError}
      */
     set cursorVisible(boolean) {
-        if (typeof(boolean) !== typeof(true)) throw new TypeError("The value of the foregroundColor property got assigned a wrong type.");
+        if (typeof(boolean) !== typeof(true)) throw new TypeError(`The value of the foregroundColor property got assigned a wrong type.`);
 
         if (boolean) this._cursorVisible = true;
         else this._cursorVisible = false;
@@ -219,7 +229,7 @@ class Terminal {
      * @throws {TypeError}
      */
     set foregroundColor(color) {
-        if (color instanceof TerminalColor) throw new TypeError("The value of the foregroundColor property got assigned a wrong type.");
+        if (!color instanceof TerminalColor) throw new TypeError(`The value of the foregroundColor property got assigned a wrong type.`);
 
         this._foregroundColor = color;
     }
@@ -261,10 +271,10 @@ class Terminal {
      * @throws {RangeError}
      */
     set windowHeight(value) {
-        if (!Number.isInteger(value)) throw TypeError("The value of the windowHeight property got assigned a wrong type.");
-        if (value <= 0) throw new RangeError("The value of the windowHeight property is less than or equal to zero.");
-        if (value + this.windowTop >= Number.MAX_SAFE_INTEGER) throw new RangeError("The value of the windowHeight property plus the value of the windowTop property is greater than or equal to Number.MAX_SAFE_INTEGER.");
-        if (value > this.largestWindowHeight) throw new RangeError("The value of the windowHeight property is greater than the largest possible window height for the current screen resolution and font.");
+        if (!Number.isInteger(value)) throw TypeError(`The value of the windowHeight property got assigned a wrong type.`);
+        if (value <= 0) throw new RangeError(`The value of the windowHeight property is less than or equal to zero.`);
+        if (value + this.windowTop >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the windowHeight property plus the value of the windowTop property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
+        if (value > this.largestWindowHeight) throw new RangeError(`The value of the windowHeight property is greater than the largest possible window height for the current screen resolution and font.`);
 
         this._windowHeight = value;
         // MISSING Call to display to update size of canvas.
@@ -279,9 +289,9 @@ class Terminal {
      * @throws {RangeError}
      */
     set windowLeft(value) {
-        if (!Number.isInteger(value)) throw TypeError("The value of the windowLeft property got assigned a wrong type.");
-        if (value < 0) throw new RangeError("The value of the windowTop property is less than zero.");
-        if (value + this.windowWidth > this.bufferWidth) throw new RangeError("The value of the windowLeft property plus the value of the windowWidth property is greater than bufferWidth.");
+        if (!Number.isInteger(value)) throw TypeError(`The value of the windowLeft property got assigned a wrong type.`);
+        if (value < 0) throw new RangeError(`The value of the windowLeft property is less than zero.`);
+        if (value + this._windowWidth > this._bufferWidth) throw new RangeError(`The value of the windowLeft property plus the value of the windowWidth property is greater than bufferWidth.`);
 
         this._windowLeft = value;
         // MISSING Call to display to move viewed area.
@@ -296,9 +306,9 @@ class Terminal {
      * @throws {RangeError}
      */
     set windowTop(value) {
-        if (!Number.isInteger(value)) throw new TypeError("The value of the windowTop property got assigned a wrong type.");
-        if (value < 0) throw new RangeError("The value of the windowTop property is less than zero.");
-        if (value + this.windowHeight > this.bufferHeight) throw new RangeError("The value of the windowTop property plus the value of the windowHeight property is greater than bufferHeight.");
+        if (!Number.isInteger(value)) throw new TypeError(`The value of the windowTop property got assigned a wrong type.`);
+        if (value < 0) throw new RangeError(`The value of the windowTop property is less than zero.`);
+        if (value + this._windowHeight > this._bufferHeight) throw new RangeError(`The value of the windowTop property plus the value of the windowHeight property is greater than bufferHeight.`);
 
         this._windowTop = value;
         // MISSING Call to display to move viewed area.
@@ -313,10 +323,10 @@ class Terminal {
      * @throws {RangeError}
      */
     set windowWidth(value) {
-        if (!Number.isInteger(value)) throw new TypeError("The value of the windowWidth property got assigned a wrong type.");
-        if (value <= 0) throw new RangeError("The value of the windowWidth property is less than or equal to zero.");
-        if (value + this.windowLeft >= Number.MAX_SAFE_INTEGER) throw new RangeError("The value of the windowWidth property plus the value of the windowLeft property is greater than or equal to Number.MAX_SAFE_INTEGER.");
-        if (value > this.largestWindowWidth) throw new RangeError("The value of the windowWidth property is greater than the largest possible window width for the current screen resolution and font.");
+        if (!Number.isInteger(value)) throw new TypeError(`The value of the windowWidth property got assigned a wrong type.`);
+        if (value <= 0) throw new RangeError(`The value of the windowWidth property is less than or equal to zero.`);
+        if (value + this._windowLeft >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the windowWidth property plus the value of the windowLeft property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
+        if (value > this.largestWindowWidth) throw new RangeError(`The value of the windowWidth property is greater than the largest possible window width for the current screen resolution and font.`);
 
         this._windowWidth = value;
         // MISSING Call to display to update size of canvas.
@@ -327,33 +337,23 @@ class Terminal {
      * @param {*} options 
      */
     constructor(options) {
-        this._updateBuffer();
+        this._resizeBuffer();
     }
 
     /**
+     * Resize the buffer of the terminal.
      * @private
      */
-    _updateBuffer() {
-        let x = this.bufferWidth;
-        let y = this.bufferHeight;
-        let buffer = [...Array(y)].map(_=>Array(x).fill(new TerminalField()));
-        let old = [];
-        let counter = 0;
+    _resizeBuffer() {
+        let size = this._bufferWidth * this._bufferHeight;
+        let buffer = [...Array(size)];
 
-        for (let y = 0; y < this._buffer.length; y++) {
-            for (let x = 0; x < this._buffer[y].length; x++) {
-                old[counter] = this._buffer[y][x];
-                counter++;
-            }
-        }
+        for (let i = 0; i < size; i++) {
+            let field = new TerminalField(EMPTY_CHARACTER, this._foregroundColor, this._backgroundColor);
 
-        counter = 0;
-
-        for (let y = 0; y < buffer.length; y++) {
-            for (let x = 0; x < buffer[y].length; x++) {
-                buffer[y][x] = old[counter];
-                counter++;
-            }
+            if (index < this._buffer.length) field = this._buffer[index];
+            
+            buffer[index] = field;
         }
 
         this._buffer = buffer;
@@ -363,12 +363,10 @@ class Terminal {
      * Clears the terminal buffer and corresponding terminal window of display information.
      */
     Clear() {
-        for (let y = 0; y < this._buffer.length; y++) {
-            for (let x = 0; x < this._buffer[y].length; x++) {
-                buffer[y][x].char = EMPTY_CHARACTER;
-                buffer[y][x].foregroundColor = this.foregroundColor;
-                buffer[y][x].backgroundColor = this.backgroundColor;
-            }
+        for (let i = 0; i < this._buffer.length; i++) {
+            buffer[i].char = EMPTY_CHARACTER;
+            buffer[i].foregroundColor = this._foregroundColor;
+            buffer[i].backgroundColor = this._backgroundColor;
         }
     }
 
@@ -394,17 +392,59 @@ class Terminal {
      * @param {string} sourceChar The TerminalField used to fill the source area.
      * @param {Color} sourceForegroundColor The foreground color used to fill the source area.
      * @param {Color} sourceBackgroundColor The background color used to fill the source area.
+     * @throws {TypeError}
+     * @throws {RangeError}
      */
     MoveBufferArea(sourceLeft, sourceTop, sourceWidth, sourceHeight, targetLeft, targetTop, sourceChar = EMPTY_CHARACTER, sourceForegroundColor = this.foregroundColor, sourceBackgroundColor = this.backgroundColor) {
-        if (typeof(sourceLeft) !== 'number') throw TypeError("");
-        if (typeof(sourceTop) !== 'number') throw TypeError("");
-        if (typeof(sourceWidth) !== 'number') throw TypeError("");
-        if (typeof(sourceHeight) !== 'number') throw TypeError("");
-        if (typeof(targetLeft) !== 'number') throw TypeError("");
-        if (typeof(targetTop) !== 'number') throw TypeError("");
-        if (typeof(sourceChar) !== 'string') throw TypeError("");
-        if (sourceForegroundColor instanceof Color) throw TypeError("");
-        if (sourceBackgroundColor instanceof Color) throw TypeError("");
+        if (!Number.isInteger(sourceLeft)) throw new TypeError(`The value of the sourceLeft parameter got assigned a wrong type.`);
+        if (!Number.isInteger(sourceTop)) throw new TypeError(`The value of the sourceTop parameter got assigned a wrong type.`);
+        if (!Number.isInteger(sourceWidth)) throw new TypeError(`The value of the sourceWidth parameter got assigned a wrong type.`);
+        if (!Number.isInteger(sourceHeight)) throw new TypeError(`The value of the sourceHeight parameter got assigned a wrong type.`);
+        if (!Number.isInteger(targetLeft)) throw new TypeError(`The value of the targetLeft parameter got assigned a wrong type.`);
+        if (!Number.isInteger(targetTop)) throw new TypeError(`The value of the targetTop parameter got assigned a wrong type.`);
+        if (typeof(sourceChar) !== `string`) throw new TypeError(`The value of the sourceChar parameter got assigned a wrong type.`);
+        if (!sourceForegroundColor instanceof Color) throw new TypeError(`The value of the sourceForegroundColor parameter got assigned a wrong type.`);
+        if (!sourceBackgroundColor instanceof Color) throw new TypeError(`The value of the sourceBackgroundColor parameter got assigned a wrong type.`);
+        if (sourceLeft < 0) throw new RangeError(`The value of the sourceLeft parameter is less than zero.`);
+        if (sourceTop < 0) throw new RangeError(`The value of the sourceTop parameter is less than zero.`);
+        if (sourceWidth < 0) throw new RangeError(`The value of the sourceWidth parameter is less than zero.`);
+        if (sourceHeight < 0) throw new RangeError(`The value of the sourceHeight parameter is less than zero.`);
+        if (targetLeft < 0) throw new RangeError(`The value of the targetLeft parameter is less than zero.`);
+        if (targetTop < 0) throw new RangeError(`The value of the targetTop parameter is less than zero.`);
+        if (sourceLeft >= this._bufferWidth) throw new RangeError(`The value of the sourceLeft parameter is greater than or equal to bufferWidth.`);
+        if (sourceTop >= this._bufferHeight) throw new RangeError(`The value of the sourceTop parameter is greater than or equal to bufferHeight.`);
+        if (targetLeft >= this._bufferWidth) throw new RangeError(`The value of the targetLeft parameter is greater than or equal to bufferWidth.`);
+        if (targetTop >= this._bufferHeight) throw new RangeError(`The value of the targetTop parameter is greater than or equal to bufferHeight.`);
+        if (sourceLeft + sourceWidth >= this._bufferWidth) throw new RangeError(`The value of the sourceLeft parameter plus the value of the sourceWidth parameter is greater than or equal to bufferWidth.`);
+        if (sourceTop + sourceHeight >= this._bufferHeight) throw new RangeError(`The value of the sourceTop parameter plus the value of the sourceHeight parameter is greater than or equal to bufferHeight.`);
+        if (sourceChar.length > 1) throw new RangeError(`The value of the sourceChar parameter was not a single char.`);
+
+        let width = this._bufferWidth;
+        let size = sourceWidth * sourceHeight;
+        let buffer = [...Array(size)];
+
+        for (let y = sourceTop; y < sourceTop + sourceHeight; y++) {
+            for (let x = sourceLeft; x < sourceLeft + sourceWidth; x++) {
+                let index = y * width + y;
+                let offsetY = y - sourceTop;
+                let offsetX = x - sourceLeft;
+                let offsetIndex = offsetY * width + offsetX;
+
+                buffer[offsetIndex] = this._buffer[index];
+                this._buffer[index] = new TerminalField(sourceChar, sourceForegroundColor, sourceBackgroundColor);
+            }
+        }
+
+        for (let y = targetTop; y < targetTop + sourceHeight; y++) {
+            for (let x = targetLeft; x < targetLeft + sourceWidth; x++) {
+                let index = y * width + x;
+                let offsetY = y - targetTop;
+                let offsetX = x - targetLeft;
+                let offsetIndex = offsetY * width + offsetX;
+
+                this._buffer[index] = buffer[offsetIndex];
+            }
+        }
     }
 
     /**
@@ -419,7 +459,7 @@ class Terminal {
      * @param {boolean} intercept Determines whether to display the pressed key in the terminal window. `true` to not display the pressed key; otherwise, `false`.
      */
     ReadKey(intercept = false) {
-        if (typeof(intercept) !== 'boolean') throw TypeError();
+        if (typeof(intercept) !== `boolean`) throw new TypeError(`The value of the intercept parameter got assigned a wrong type.`);
     }
 
     /**
@@ -433,60 +473,89 @@ class Terminal {
      * Sets the foreground and background terminal colors to their defaults.
      */
     ResetColor() {
-        this.foregroundColor = DEFAULT_FOREGROUND_COLOR;
-        this.backgroundColor = DEFUALT_BACKGROUND_COLOR;
+        this._foregroundColor = DEFAULT_FOREGROUND_COLOR;
+        this._backgroundColor = DEFUALT_BACKGROUND_COLOR;
     }
 
     /**
      * Sets the height and width of the screen buffer area to the specified values.
      * @param {number} width The width of the buffer area measured in columns.
      * @param {number} height The height of the buffer area measured in rows.
+     * @throws {TypeError}
+     * @throws {RangeError}
      */
     SetBufferSize(width, height) {
-        if (typeof(width) !== 'number') throw TypeError();
-        if (typeof(height) !== 'number') throw TypeError();
+        if (!Number.isInteger(width)) throw new TypeError(`The value of the width parameter got assigned a wrong type.`);
+        if (!Number.isInteger(height)) throw new TypeError(`The value of the height parameter got assigned a wrong type.`);
+        if (width <= 0) throw new RangeError(`The value of the width parameter is less than or equal to zero.`);
+        if (height <= 0) throw new RangeError(`The value of the height parameter is less than or equal to zero.`);
+        if (width >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the width parameter is greater than or equal to Number.MAX_SAFE_INTEGER.`);
+        if (height >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the height parameter is greater than or equal to Number.MAX_SAFE_INTEGER.`);
+        if (width < this._windowLeft + this._windowWidth) throw new RangeError(`The value of the width parameter is less than the windowLeft property plus the windowWidth property.`);
+        if (height < this._windowTop + this._windowHeight) throw new RangeError(`The value of the height parameter is less than the windowTop property plus the windowHeight property.`);
 
-        this.bufferWidth = width;
-        this.bufferHeight = height;
+        this._bufferWidth = width;
+        this._bufferHeight = height;
+        this._resizeBuffer();
     }
 
     /**
      * Sets the position of the cursor.
      * @param {number} left The column position of the cursor. Columns are numbered from left to right starting at 0.
      * @param {number} top The row position of the cursor. Rows are numbered from top to bottom starting at 0.
+     * @throws {TypeError}
+     * @throws {RangeError}
      */
     SetCursorPosition(left, top) {
-        if (typeof(left) !== 'number') throw TypeError();
-        if (typeof(top) !== 'number') throw TypeError();
+        if (!Number.isInteger(left)) throw new TypeError(`The value of the left parameter got assigned a wrong type.`);
+        if (!Number.isInteger(top)) throw new TypeError(`The value of the top parameter got assigned a wrong type.`);
+        if (left < 0) throw new RangeError(`The value of the left parameter is less than zero.`);
+        if (top < 0) throw new RangeError(`The value of the top parameter is less than zero.`);
+        if (left > this._bufferWidth) throw new RangeError(`The value of the left parameter is greater than or equal to bufferWidth.`);
+        if (top >= this._bufferHeight) throw new RangeError(`The value of the top parameter is greater than or equal to bufferHeight.`);
 
-        this.cursorLeft = left;
-        this.cursorTop = top;
+        this._cursorLeft = left;
+        this._cursorTop = top;
     }
 
     /**
      * Sets the position of the terminal window relative to the screen buffer.
      * @param {number} left The column position of the upper left corner of the terminal window.
      * @param {number} top The row position of the upper left corner of the terminal window.
+     * @throws {TypeError}
+     * @throws {RangeError}
      */
     SetWindowPosition(left, top) {
-        if (typeof(left) !== 'number') throw TypeError();
-        if (typeof(top) !== 'number') throw TypeError();
+        if (!Number.isInteger(left)) throw new TypeError(`The value of the left parameter got assigned a wrong type.`);
+        if (!Number.isInteger(top)) throw new TypeError(`The value of the top parameter got assigned a wrong type.`);
+        if (left < 0) throw new RangeError(`The value of the left parameter is less than zero.`);
+        if (top < 0) throw new RangeError(`The value of the top parameter is less than zero.`);
+        if (left + this._windowWidth > this._bufferWidth) throw new RangeError(`The value of the left parameter plus the value of the windowWidth property is greater than bufferWidth.`);
+        if (top + this._windowHeight > this._bufferHeight) throw new RangeError(`The value of the top parameter plus the value of the windowHeight property is greater than bufferHeight.`);
 
-        this.windowLeft = left;
-        this.windowTop = top;
+        this._windowLeft = left;
+        this._windowTop = top;
     }
 
     /**
      * Sets the height and width of the terminal window to the specified values.
      * @param {number} width The width of the terminal window measured in columns.
      * @param {number} height The height of the terminal window measured in rows.
+     * @throws {TypeError}
+     * @throws {RangeError}
      */
     SetWindowSize(width, height) {
-        if (typeof(width) !== 'number') throw TypeError();
-        if (typeof(height) !== 'number') throw TypeError();
+        if (!Number.isInteger(width)) throw new TypeError(`The value of the width parameter got assigned a wrong type.`);
+        if (!Number.isInteger(height)) throw new TypeError(`The value of the height parameter got assigned a wrong type.`);
+        if (width <= 0) throw new RangeError(`The value of the width parameter is less than or equal to zero.`);
+        if (height <= 0) throw new RangeError(`The value of the height parameter is less than or equal to zero.`);
+        if (width + this._windowLeft >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the width parameter plus the value of the windowLeft property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
+        if (height + this._windowTop >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the height parameter plus the value of the windowTop property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
+        if (width > this.largestWindowWidth) throw new RangeError(`The value of the width parameter is greater than the largest possible window width for the current screen resolution and font.`);
+        if (height > this.largestWindowHeight) throw new RangeError(`The value of the height parameter is greater than the largest possible window height for the current screen resolution and font.`);
 
-        this.windowWidth = width;
-        this.windowHeight = height;
+        this._windowWidth = width;
+        this._windowHeight = height;
     }
 
     /**
@@ -507,10 +576,9 @@ class Terminal {
 
 }
 
-const CreateTerminal = (options) => new Terminal(options);
-
-export default CreateTerminal;
+export default Terminal;
 export {
-    Color,
-    CreateTerminal
+    Terminal,
+    TerminalColor,
+    TerminalField
 }
