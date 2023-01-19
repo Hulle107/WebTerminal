@@ -21,6 +21,11 @@ class Terminal {
     _buffer;
     /**
      * @private
+     * @type {TerminalField[][]}
+     */
+    _bufferBackup;
+    /**
+     * @private
      * @type {number}
      */
     _bufferHeight;
@@ -122,13 +127,16 @@ class Terminal {
      * @throws {TypeError}
      * @throws {RangeError}
      */
-    set bufferHeight(number) {
-        if (!Number.isInteger(number)) throw new TypeError(`The value of the bufferHeight property got assigned a wrong type.`);
-        if (number <= 0) throw new RangeError(`The value of the bufferHeight property is less than or equal to zero.`);
-        if (number >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the bufferHeight property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
-        if (number < this._windowTop + this._windowHeight) throw new RangeError(`The value of the bufferHeight property is less than the windowTop property plus the windowHeight property.`);
+    set bufferHeight(value) {
+        if (!Number.isInteger(value)) throw new TypeError(`The value of the bufferHeight property got assigned a wrong type.`);
+        if (value <= 0) throw new RangeError(`The value of the bufferHeight property is less than or equal to zero.`);
+        if (value >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the bufferHeight property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
+        if (value < this._windowTop + this._windowHeight) throw new RangeError(`The value of the bufferHeight property is less than the windowTop property plus the windowHeight property.`);
 
-        this._bufferHeight = number;
+        if (this._bufferHeight === value) return;
+
+        this._backupBuffer();
+        this._bufferHeight = value;
         this._resizeBuffer();
     }
 
@@ -140,13 +148,16 @@ class Terminal {
      * @throws {TypeError}
      * @throws {RangeError}
      */
-    set bufferWidth(number) {
-        if (!Number.isInteger(number)) throw new TypeError(`The value of the bufferWidth property got assigned a wrong type.`);
-        if (number <= 0) throw new RangeError(`The value of the bufferWidth property is less than or equal to zero.`);
-        if (number >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the bufferWidth property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
-        if (number < this._windowLeft + this._windowWidth) throw new RangeError(`The value of the bufferWidth property is less than the windowLeft property plus the windowWidth property.`);
+    set bufferWidth(value) {
+        if (!Number.isInteger(value)) throw new TypeError(`The value of the bufferWidth property got assigned a wrong type.`);
+        if (value <= 0) throw new RangeError(`The value of the bufferWidth property is less than or equal to zero.`);
+        if (value >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the bufferWidth property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
+        if (value < this._windowLeft + this._windowWidth) throw new RangeError(`The value of the bufferWidth property is less than the windowLeft property plus the windowWidth property.`);
 
-        this._bufferWidth = number;
+        if (this._bufferWidth === value) return;
+
+        this._backupBuffer();
+        this._bufferWidth = value;
         this._resizeBuffer();
     }
 
@@ -165,12 +176,14 @@ class Terminal {
      * @throws {TypeError}
      * @throws {RangeError}
      */
-    set cursorLeft(number) {
-        if (!Number.isInteger(number)) throw new TypeError(`The value of the cursorLeft property got assigned a wrong type.`);
-        if (number < 0) throw new RangeError(`The value of the cursorLeft property is less than zero.`);
-        if (number > this._bufferWidth) throw new RangeError(`The value of the cursorLeft property is greater than or equal to bufferWidth.`);
+    set cursorLeft(value) {
+        if (!Number.isInteger(value)) throw new TypeError(`The value of the cursorLeft property got assigned a wrong type.`);
+        if (value < 0) throw new RangeError(`The value of the cursorLeft property is less than zero.`);
+        if (value > this._bufferWidth) throw new RangeError(`The value of the cursorLeft property is greater than or equal to bufferWidth.`);
 
-        this._cursorLeft = number;
+        if (this._cursorLeft === value) return;
+
+        this._cursorLeft = value;
     }
 
     /**
@@ -181,12 +194,14 @@ class Terminal {
      * @throws {TypeError}
      * @throws {RangeError}
      */
-    set cursorSize(procent) {
-        if (!Number.isInteger(procent)) throw new TypeError(`The value of the cursorSize property got assigned a wrong type.`);
-        if (procent < 1) throw new RangeError(`The value of the cursorSize property is less than one.`);
-        if (procent > 100) throw new RangeError(`The value of the cursorSize property is greater than hundred.`);
+    set cursorSize(value) {
+        if (!Number.isInteger(value)) throw new TypeError(`The value of the cursorSize property got assigned a wrong type.`);
+        if (value < 1) throw new RangeError(`The value of the cursorSize property is less than one.`);
+        if (value > 100) throw new RangeError(`The value of the cursorSize property is greater than hundred.`);
 
-        this._cursorSize = procent;
+        if (this._cursorSize === value) return;
+
+        this._cursorSize = value;
     }
 
     /**
@@ -197,12 +212,14 @@ class Terminal {
      * @throws {TypeError}
      * @throws {RangeError}
      */
-    set cursorTop(number) {
-        if (!Number.isInteger(number)) throw new TypeError(`The value of the cursorTop property got assigned a wrong type.`);
-        if (number < 0) throw new RangeError(`The value of the cursorTop property is less than zero.`);
-        if (number >= this._bufferHeight) throw new RangeError(`The value of the cursorTop property is greater than or equal to bufferHeight.`);
+    set cursorTop(value) {
+        if (!Number.isInteger(value)) throw new TypeError(`The value of the cursorTop property got assigned a wrong type.`);
+        if (value < 0) throw new RangeError(`The value of the cursorTop property is less than zero.`);
+        if (value >= this._bufferHeight) throw new RangeError(`The value of the cursorTop property is greater than or equal to bufferHeight.`);
 
-        this._cursorTop = number;
+        if (this._cursorTop === value) return;
+
+        this._cursorTop = value;
     }
 
     /**
@@ -213,10 +230,10 @@ class Terminal {
     /**
      * @throws {TypeError}
      */
-    set cursorVisible(boolean) {
-        if (typeof(boolean) !== typeof(true)) throw new TypeError(`The value of the foregroundColor property got assigned a wrong type.`);
+    set cursorVisible(value) {
+        if (typeof(value) !== typeof(true)) throw new TypeError(`The value of the foregroundColor property got assigned a wrong type.`);
 
-        if (boolean) this._cursorVisible = true;
+        if (value) this._cursorVisible = true;
         else this._cursorVisible = false;
     }
 
@@ -228,10 +245,10 @@ class Terminal {
     /**
      * @throws {TypeError}
      */
-    set foregroundColor(color) {
-        if (!color instanceof TerminalColor) throw new TypeError(`The value of the foregroundColor property got assigned a wrong type.`);
+    set foregroundColor(value) {
+        if (!value instanceof TerminalColor) throw new TypeError(`The value of the foregroundColor property got assigned a wrong type.`);
 
-        this._foregroundColor = color;
+        this._foregroundColor = value;
     }
 
     /**
@@ -276,6 +293,8 @@ class Terminal {
         if (value + this.windowTop >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the windowHeight property plus the value of the windowTop property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
         if (value > this.largestWindowHeight) throw new RangeError(`The value of the windowHeight property is greater than the largest possible window height for the current screen resolution and font.`);
 
+        if (this._windowHeight === value) return;
+
         this._windowHeight = value;
         // MISSING Call to display to update size of canvas.
     }
@@ -293,6 +312,8 @@ class Terminal {
         if (value < 0) throw new RangeError(`The value of the windowLeft property is less than zero.`);
         if (value + this._windowWidth > this._bufferWidth) throw new RangeError(`The value of the windowLeft property plus the value of the windowWidth property is greater than bufferWidth.`);
 
+        if (this._windowLeft === value) return;
+
         this._windowLeft = value;
         // MISSING Call to display to move viewed area.
     }
@@ -309,6 +330,8 @@ class Terminal {
         if (!Number.isInteger(value)) throw new TypeError(`The value of the windowTop property got assigned a wrong type.`);
         if (value < 0) throw new RangeError(`The value of the windowTop property is less than zero.`);
         if (value + this._windowHeight > this._bufferHeight) throw new RangeError(`The value of the windowTop property plus the value of the windowHeight property is greater than bufferHeight.`);
+
+        if (this._windowTop === value) return;
 
         this._windowTop = value;
         // MISSING Call to display to move viewed area.
@@ -328,6 +351,8 @@ class Terminal {
         if (value + this._windowLeft >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the windowWidth property plus the value of the windowLeft property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
         if (value > this.largestWindowWidth) throw new RangeError(`The value of the windowWidth property is greater than the largest possible window width for the current screen resolution and font.`);
 
+        if (this._windowWidth === value) return;
+
         this._windowWidth = value;
         // MISSING Call to display to update size of canvas.
     }
@@ -341,21 +366,51 @@ class Terminal {
     }
 
     /**
+     * 
+     */
+    _backupBuffer() {
+        this._bufferBackup = Array.from(this.buffer);
+    }
+
+    /**
      * Resize the buffer of the terminal.
      * @private
      */
     _resizeBuffer() {
-        let size = this._bufferWidth * this._bufferHeight;
-        let buffer = [...Array(size)];
+        let width = this._bufferWidth;
+        let height = this._bufferHeight;
+        let size = width * height;
+        let buffer = [...Array(size)].fill(new TerminalField(EMPTY_CHARACTER, this._foregroundColor, this._backgroundColor));
 
-        for (let i = 0; i < size; i++) {
-            let field = new TerminalField(EMPTY_CHARACTER, this._foregroundColor, this._backgroundColor);
-
-            if (index < this._buffer.length) field = this._buffer[index];
-            
-            buffer[index] = field;
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                let index = y * width + x;
+                if (index >= this._buffer.length) break;
+                
+                buffer[index] = this._bufferBackup[y][x];
+            }
         }
 
+        this._buffer = buffer;
+    }
+
+    /**
+     * 
+     */
+    _revertBuffer() {
+        let width = this._bufferBackup[0].length;
+        let height = this._bufferBackup.length;
+        let size = width * height;
+        let buffer = [...Array(size)];
+
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                let index = y * width + x;
+                buffer[index] = this._bufferBackup[y][x];
+            }
+        }
+
+        this._backupBuffer();
         this._buffer = buffer;
     }
 
@@ -415,6 +470,8 @@ class Terminal {
         if (sourceLeft + sourceWidth >= this._bufferWidth) throw new RangeError(`The value of the sourceLeft parameter plus the value of the sourceWidth parameter is greater than or equal to bufferWidth.`);
         if (sourceTop + sourceHeight >= this._bufferHeight) throw new RangeError(`The value of the sourceTop parameter plus the value of the sourceHeight parameter is greater than or equal to bufferHeight.`);
         if (sourceChar.length > 1) throw new RangeError(`The value of the sourceChar parameter was not a single char.`);
+
+        if (sourceLeft === targetLeft && sourceTop === targetTop) return;
 
         let width = this._bufferWidth;
         let size = sourceWidth * sourceHeight;
@@ -491,6 +548,9 @@ class Terminal {
         if (width < this._windowLeft + this._windowWidth) throw new RangeError(`The value of the width parameter is less than the windowLeft property plus the windowWidth property.`);
         if (height < this._windowTop + this._windowHeight) throw new RangeError(`The value of the height parameter is less than the windowTop property plus the windowHeight property.`);
 
+        if (this._bufferWidth === width && this._bufferHeight === height) return;
+
+        this._backupBuffer();
         this._bufferWidth = width;
         this._bufferHeight = height;
         this._resizeBuffer();
@@ -511,6 +571,8 @@ class Terminal {
         if (left > this._bufferWidth) throw new RangeError(`The value of the left parameter is greater than or equal to bufferWidth.`);
         if (top >= this._bufferHeight) throw new RangeError(`The value of the top parameter is greater than or equal to bufferHeight.`);
 
+        if (this._cursorLeft === left && this._cursorTop === top) return;
+
         this._cursorLeft = left;
         this._cursorTop = top;
     }
@@ -529,6 +591,8 @@ class Terminal {
         if (top < 0) throw new RangeError(`The value of the top parameter is less than zero.`);
         if (left + this._windowWidth > this._bufferWidth) throw new RangeError(`The value of the left parameter plus the value of the windowWidth property is greater than bufferWidth.`);
         if (top + this._windowHeight > this._bufferHeight) throw new RangeError(`The value of the top parameter plus the value of the windowHeight property is greater than bufferHeight.`);
+
+        if (this._windowLeft === left && this._windowTop === top) return;
 
         this._windowLeft = left;
         this._windowTop = top;
@@ -550,6 +614,8 @@ class Terminal {
         if (height + this._windowTop >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the height parameter plus the value of the windowTop property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
         if (width > this.largestWindowWidth) throw new RangeError(`The value of the width parameter is greater than the largest possible window width for the current screen resolution and font.`);
         if (height > this.largestWindowHeight) throw new RangeError(`The value of the height parameter is greater than the largest possible window height for the current screen resolution and font.`);
+
+        if (this._windowWidth === width && this._windowHeight === height) return;
 
         this._windowWidth = width;
         this._windowHeight = height;
