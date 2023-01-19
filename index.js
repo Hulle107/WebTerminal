@@ -364,15 +364,12 @@ class Terminal {
      */
     Clear() {
         for (let i = 0; i < this._buffer.length; i++) {
-            buffer[i].char = EMPTY_CHARACTER;
-            buffer[i].foregroundColor = this._foregroundColor;
-            buffer[i].backgroundColor = this._backgroundColor;
+            this._buffer[i] = new TerminalField(EMPTY_CHARACTER, this._foregroundColor, this._backgroundColor);
         }
     }
 
     /**
      * Gets the position of the cursor.
-     * @returns {{left: number, top: number}}
      */
     GetCursorPosition() { 
         return { 
