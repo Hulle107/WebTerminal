@@ -2,6 +2,7 @@
 
 import TerminalColor from "./lib/terminalColor";
 import TerminalField from "./lib/terminalField";
+import TypeCheck, { Guard } from "./lib/Guard";
 
 const EMPTY_CHARACTER = ``;
 const DEFUALT_BACKGROUND_COLOR = TerminalColor.Black;
@@ -87,10 +88,10 @@ class Terminal {
     /**
      * @throws {TypeError}
      */
-    set backgroundColor(color) {
-        if (!color instanceof TerminalColor) throw new TypeError(`The value of the backgroundColor property got assigned a wrong type.`);
+    set backgroundColor(value) {
+        Guard.IsInstanceOf(value, 'value', TerminalColor, `The value of the backgroundColor property got assigned a wrong type.`);
 
-        this._backgroundColor = color;
+        this._backgroundColor = value;
     }
 
     /**
@@ -128,8 +129,11 @@ class Terminal {
      * @throws {RangeError}
      */
     set bufferHeight(value) {
-        if (!Number.isInteger(value)) throw new TypeError(`The value of the bufferHeight property got assigned a wrong type.`);
-        if (value <= 0) throw new RangeError(`The value of the bufferHeight property is less than or equal to zero.`);
+        Guard.IsNumber(value, 'value', `The value of the bufferHeight property got assigned a wrong type.`);
+        Guard.NegativeOrZero(value, 'value', `The value of the bufferHeight property is less than or equal to zero.`);
+        Guard.LargerThenOrEqual(value, 'value', Number.MAX_SAFE_INTEGER, `The value of the bufferHeight property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
+        Guard.LessThen(value, 'value', )
+
         if (value >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the bufferHeight property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
         if (value < this._windowTop + this._windowHeight) throw new RangeError(`The value of the bufferHeight property is less than the windowTop property plus the windowHeight property.`);
 
@@ -231,7 +235,7 @@ class Terminal {
      * @throws {TypeError}
      */
     set cursorVisible(value) {
-        if (typeof(value) !== typeof(true)) throw new TypeError(`The value of the foregroundColor property got assigned a wrong type.`);
+        if (TypeCheck.IsBoolean(value)) throw new TypeError(`The value of the foregroundColor property got assigned a wrong type.`);
 
         if (value) this._cursorVisible = true;
         else this._cursorVisible = false;
@@ -454,7 +458,7 @@ class Terminal {
         if (!Number.isInteger(sourceHeight)) throw new TypeError(`The value of the sourceHeight parameter got assigned a wrong type.`);
         if (!Number.isInteger(targetLeft)) throw new TypeError(`The value of the targetLeft parameter got assigned a wrong type.`);
         if (!Number.isInteger(targetTop)) throw new TypeError(`The value of the targetTop parameter got assigned a wrong type.`);
-        if (typeof(sourceChar) !== `string`) throw new TypeError(`The value of the sourceChar parameter got assigned a wrong type.`);
+        if (typeof sourceChar !== `string`) throw new TypeError(`The value of the sourceChar parameter got assigned a wrong type.`);
         if (!sourceForegroundColor instanceof Color) throw new TypeError(`The value of the sourceForegroundColor parameter got assigned a wrong type.`);
         if (!sourceBackgroundColor instanceof Color) throw new TypeError(`The value of the sourceBackgroundColor parameter got assigned a wrong type.`);
         if (sourceLeft < 0) throw new RangeError(`The value of the sourceLeft parameter is less than zero.`);
@@ -513,7 +517,7 @@ class Terminal {
      * @param {boolean} intercept Determines whether to display the pressed key in the terminal window. `true` to not display the pressed key; otherwise, `false`.
      */
     ReadKey(intercept = false) {
-        if (typeof(intercept) !== `boolean`) throw new TypeError(`The value of the intercept parameter got assigned a wrong type.`);
+        if (typeof intercept !== `boolean`) throw new TypeError(`The value of the intercept parameter got assigned a wrong type.`);
     }
 
     /**
