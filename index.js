@@ -1,7 +1,7 @@
 `use strict`;
 
-import TerminalColor from "./lib/terminalColor";
-import TerminalField from "./lib/terminalField";
+import TerminalColor from "./lib/terminal.color";
+import TerminalField from "./lib/terminal.field";
 import Guard from "./lib/guard";
 
 const EMPTY_CHARACTER = ``;
