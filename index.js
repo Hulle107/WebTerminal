@@ -2,7 +2,7 @@
 
 import TerminalColor from "./lib/terminalColor";
 import TerminalField from "./lib/terminalField";
-import TypeCheck, { Guard } from "./lib/Guard";
+import Guard from "./lib/guard";
 
 const EMPTY_CHARACTER = ``;
 const DEFUALT_BACKGROUND_COLOR = TerminalColor.Black;
@@ -86,10 +86,10 @@ class Terminal {
      */
     get backgroundColor() { return this._backgroundColor; }
     /**
-     * @throws {TypeError}
+     * @throws {@link TypeError}
      */
     set backgroundColor(value) {
-        Guard.IsInstanceOf(value, 'value', TerminalColor, `The value of the backgroundColor property got assigned a wrong type.`);
+        Guard.NonInstanceOf(value, TerminalColor, `The value of the backgroundColor property got assigned a wrong type.`);
 
         this._backgroundColor = value;
     }
@@ -98,23 +98,7 @@ class Terminal {
      * Gets the buffer of the terminal.
      */
     get buffer() {
-        let width = this._bufferWidth;
-        let height = this._bufferHeight;
-        let size = this._buffer.length;
-
-        /**
-         * @type {TerminalField[][]}
-         */
-        let buffer = [...Array(height)].map(_=>Array(width).fill(new TerminalField()));
-
-        for (let i = 0; i < size; i++) {
-            y = i / width;
-            x = i % width;
-
-            buffer[y][x] = this._buffer[i];
-        }
-
-        return buffer;
+        return this._buffer;
     }
 
     /**
@@ -125,23 +109,22 @@ class Terminal {
         return this._bufferHeight; 
     }
     /**
-     * @throws {TypeError}
-     * @throws {RangeError}
+     * @throws {@link TypeError}
+     * @throws {@link RangeError}
      */
     set bufferHeight(value) {
-        Guard.IsNumber(value, 'value', `The value of the bufferHeight property got assigned a wrong type.`);
-        Guard.NegativeOrZero(value, 'value', `The value of the bufferHeight property is less than or equal to zero.`);
-        Guard.LargerThenOrEqual(value, 'value', Number.MAX_SAFE_INTEGER, `The value of the bufferHeight property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
-        Guard.LessThen(value, 'value', )
-
-        if (value >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the bufferHeight property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
-        if (value < this._windowTop + this._windowHeight) throw new RangeError(`The value of the bufferHeight property is less than the windowTop property plus the windowHeight property.`);
+        Guard.NonNumber(value, `The value of the bufferHeight property got assigned a wrong type.`);
+        Guard.NegativeOrZero(value, `The value of the bufferHeight property is less than or equal to zero.`);
+        Guard.BiggerThenOrEqual(value, Number.MAX_SAFE_INTEGER, `The value of the bufferHeight property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
+        Guard.LessThen(value, this._windowTop + this._windowHeight, `The value of the bufferHeight property is less than the windowTop property plus the windowHeight property.`);
 
         if (this._bufferHeight === value) return;
 
-        this._backupBuffer();
+        let currentWidth = this._bufferWidth;
+        let currentHeight = this._bufferHeight;
+
         this._bufferHeight = value;
-        this._resizeBuffer();
+        this._resizeBuffer(currentWidth, currentHeight);
     }
 
     /**
@@ -149,20 +132,22 @@ class Terminal {
      */
     get bufferWidth() { return this._bufferWidth; }
     /**
-     * @throws {TypeError}
-     * @throws {RangeError}
+     * @throws {@link TypeError}
+     * @throws {@link RangeError}
      */
     set bufferWidth(value) {
-        if (!Number.isInteger(value)) throw new TypeError(`The value of the bufferWidth property got assigned a wrong type.`);
-        if (value <= 0) throw new RangeError(`The value of the bufferWidth property is less than or equal to zero.`);
-        if (value >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the bufferWidth property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
-        if (value < this._windowLeft + this._windowWidth) throw new RangeError(`The value of the bufferWidth property is less than the windowLeft property plus the windowWidth property.`);
+        Guard.NonNumber(value, `The value of the bufferWidth property got assigned a wrong type.`);
+        Guard.NegativeOrZero(value, `The value of the bufferWidth property is less than or equal to zero.`);
+        Guard.BiggerThenOrEqual(value, Number.MAX_SAFE_INTEGER, `The value of the bufferWidth property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
+        Guard.LessThen(value, this._windowLeft + this._windowWidth, `The value of the bufferWidth property is less than the windowLeft property plus the windowWidth property.`);
 
         if (this._bufferWidth === value) return;
 
-        this._backupBuffer();
+        let currentWidth = this._bufferWidth;
+        let currentHeight = this._bufferHeight;
+
         this._bufferWidth = value;
-        this._resizeBuffer();
+        this._resizeBuffer(currentWidth, currentHeight);
     }
 
     /**
@@ -177,13 +162,13 @@ class Terminal {
      */
     get cursorLeft() { return this._cursorLeft; }
     /**
-     * @throws {TypeError}
-     * @throws {RangeError}
+     * @throws {@link TypeError}
+     * @throws {@link RangeError}
      */
     set cursorLeft(value) {
-        if (!Number.isInteger(value)) throw new TypeError(`The value of the cursorLeft property got assigned a wrong type.`);
-        if (value < 0) throw new RangeError(`The value of the cursorLeft property is less than zero.`);
-        if (value > this._bufferWidth) throw new RangeError(`The value of the cursorLeft property is greater than or equal to bufferWidth.`);
+        Guard.NonNumber(value, `The value of the cursorLeft property got assigned a wrong type.`);
+        Guard.Negative(value, `The value of the cursorLeft property is less than zero.`);
+        Guard.BiggerThen(value, this._bufferWidth, `The value of the cursorLeft property is greater than or equal to bufferWidth.`);
 
         if (this._cursorLeft === value) return;
 
@@ -195,13 +180,13 @@ class Terminal {
      */
     get cursorSize() { return this._cursorSize; }
     /**
-     * @throws {TypeError}
-     * @throws {RangeError}
+     * @throws {@link TypeError}
+     * @throws {@link RangeError}
      */
     set cursorSize(value) {
-        if (!Number.isInteger(value)) throw new TypeError(`The value of the cursorSize property got assigned a wrong type.`);
-        if (value < 1) throw new RangeError(`The value of the cursorSize property is less than one.`);
-        if (value > 100) throw new RangeError(`The value of the cursorSize property is greater than hundred.`);
+        Guard.NonNumber(value, `The value of the cursorSize property got assigned a wrong type.`);
+        Guard.LessThen(value, 1, `The value of the cursorSize property is less than one.`);
+        Guard.BiggerThen(value, 100, `The value of the cursorSize property is greater than hundred.`);
 
         if (this._cursorSize === value) return;
 
@@ -213,13 +198,13 @@ class Terminal {
      */
     get cursorTop() { return this._cursorTop; }
     /**
-     * @throws {TypeError}
-     * @throws {RangeError}
+     * @throws {@link TypeError}
+     * @throws {@link RangeError}
      */
     set cursorTop(value) {
-        if (!Number.isInteger(value)) throw new TypeError(`The value of the cursorTop property got assigned a wrong type.`);
-        if (value < 0) throw new RangeError(`The value of the cursorTop property is less than zero.`);
-        if (value >= this._bufferHeight) throw new RangeError(`The value of the cursorTop property is greater than or equal to bufferHeight.`);
+        Guard.NonNumber(value, `The value of the cursorTop property got assigned a wrong type.`);
+        Guard.Negative(value, `The value of the cursorTop property is less than zero.`);
+        Guard.BiggerThenOrEqual(value, this._bufferHeight, `The value of the cursorTop property is greater than or equal to bufferHeight.`);
 
         if (this._cursorTop === value) return;
 
@@ -232,10 +217,10 @@ class Terminal {
      */
     get cursorVisible() { return this._cursorVisible; }
     /**
-     * @throws {TypeError}
+     * @throws {@link TypeError}
      */
     set cursorVisible(value) {
-        if (TypeCheck.IsBoolean(value)) throw new TypeError(`The value of the foregroundColor property got assigned a wrong type.`);
+        Guard.NonBoolean(value, `The value of the foregroundColor property got assigned a wrong type.`);
 
         if (value) this._cursorVisible = true;
         else this._cursorVisible = false;
@@ -247,10 +232,10 @@ class Terminal {
      */
     get foregroundColor() { return this._foregroundColor; }
     /**
-     * @throws {TypeError}
+     * @throws {@link TypeError}
      */
     set foregroundColor(value) {
-        if (!value instanceof TerminalColor) throw new TypeError(`The value of the foregroundColor property got assigned a wrong type.`);
+        Guard.NonInstanceOf(value, TerminalColor, `The value of the foregroundColor property got assigned a wrong type.`);
 
         this._foregroundColor = value;
     }
@@ -288,14 +273,14 @@ class Terminal {
      */
     get windowHeight() { return this._windowHeight; }
     /**
-     * @throws {TypeError}
-     * @throws {RangeError}
+     * @throws {@link TypeError}
+     * @throws {@link RangeError}
      */
     set windowHeight(value) {
-        if (!Number.isInteger(value)) throw TypeError(`The value of the windowHeight property got assigned a wrong type.`);
-        if (value <= 0) throw new RangeError(`The value of the windowHeight property is less than or equal to zero.`);
-        if (value + this.windowTop >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the windowHeight property plus the value of the windowTop property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
-        if (value > this.largestWindowHeight) throw new RangeError(`The value of the windowHeight property is greater than the largest possible window height for the current screen resolution and font.`);
+        Guard.NonNumber(value, `The value of the windowHeight property got assigned a wrong type.`);
+        Guard.NegativeOrZero(value, `The value of the windowHeight property is less than or equal to zero.`);
+        Guard.BiggerThenOrEqual(value + this.windowTop, Number.MAX_SAFE_INTEGER, `The value of the windowHeight property plus the value of the windowTop property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
+        Guard.BiggerThen(value, this.largestWindowHeight, `The value of the windowHeight property is greater than the largest possible window height for the current screen resolution and font.`);
 
         if (this._windowHeight === value) return;
 
@@ -308,13 +293,13 @@ class Terminal {
      */
     get windowLeft() { return this._windowLeft; }
     /**
-     * @throws {TypeError}
-     * @throws {RangeError}
+     * @throws {@link TypeError}
+     * @throws {@link RangeError}
      */
     set windowLeft(value) {
-        if (!Number.isInteger(value)) throw TypeError(`The value of the windowLeft property got assigned a wrong type.`);
-        if (value < 0) throw new RangeError(`The value of the windowLeft property is less than zero.`);
-        if (value + this._windowWidth > this._bufferWidth) throw new RangeError(`The value of the windowLeft property plus the value of the windowWidth property is greater than bufferWidth.`);
+        Guard.NonNumber(value, `The value of the windowLeft property got assigned a wrong type.`);
+        Guard.Negative(value, `The value of the windowLeft property is less than zero.`);
+        Guard.BiggerThen(value + this._windowWidth, this._bufferWidth, `The value of the windowLeft property plus the value of the windowWidth property is greater than bufferWidth.`);
 
         if (this._windowLeft === value) return;
 
@@ -327,13 +312,13 @@ class Terminal {
      */
     get windowTop() { return this._windowTop; }
     /**
-     * @throws {TypeError}
-     * @throws {RangeError}
+     * @throws {@link TypeError}
+     * @throws {@link RangeError}
      */
     set windowTop(value) {
-        if (!Number.isInteger(value)) throw new TypeError(`The value of the windowTop property got assigned a wrong type.`);
-        if (value < 0) throw new RangeError(`The value of the windowTop property is less than zero.`);
-        if (value + this._windowHeight > this._bufferHeight) throw new RangeError(`The value of the windowTop property plus the value of the windowHeight property is greater than bufferHeight.`);
+        Guard.NonNumber(value, `The value of the windowTop property got assigned a wrong type.`);
+        Guard.Negative(value, `The value of the windowTop property is less than zero.`);
+        Guard.BiggerThen(value + this._windowHeight, this._bufferHeight, `The value of the windowTop property plus the value of the windowHeight property is greater than bufferHeight.`);
 
         if (this._windowTop === value) return;
 
@@ -346,14 +331,14 @@ class Terminal {
      */
     get windowWidth() { return this._windowWidth; }
     /**
-     * @throws {TypeError}
-     * @throws {RangeError}
+     * @throws {@link TypeError}
+     * @throws {@link RangeError}
      */
     set windowWidth(value) {
-        if (!Number.isInteger(value)) throw new TypeError(`The value of the windowWidth property got assigned a wrong type.`);
-        if (value <= 0) throw new RangeError(`The value of the windowWidth property is less than or equal to zero.`);
-        if (value + this._windowLeft >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the windowWidth property plus the value of the windowLeft property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
-        if (value > this.largestWindowWidth) throw new RangeError(`The value of the windowWidth property is greater than the largest possible window width for the current screen resolution and font.`);
+        Guard.NonNumber(value, `The value of the windowWidth property got assigned a wrong type.`);
+        Guard.NegativeOrZero(value, `The value of the windowWidth property is less than or equal to zero.`);
+        Guard.BiggerThenOrEqual(value + this._windowLeft, Number.MAX_SAFE_INTEGER, `The value of the windowWidth property plus the value of the windowLeft property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
+        Guard.BiggerThen(value, this.largestWindowWidth, `The value of the windowWidth property is greater than the largest possible window width for the current screen resolution and font.`);
 
         if (this._windowWidth === value) return;
 
@@ -370,52 +355,41 @@ class Terminal {
     }
 
     /**
-     * 
-     */
-    _backupBuffer() {
-        this._bufferBackup = Array.from(this.buffer);
-    }
-
-    /**
      * Resize the buffer of the terminal.
+     * @param {number} currentWidth
+     * @param {number} currentHeight
      * @private
      */
-    _resizeBuffer() {
+    _resizeBuffer(currentWidth, currentHeight) {
+        Guard.NonNumber(currentWidth, `The value of the currentWidth parameter got assigned a wrong type.`);
+        Guard.NonNumber(currentHeight, `The value of the currentHeight parameter got assigned a wrong type.`);
+        Guard.NegativeOrZero(currentWidth, `The value of the currentWidth parameter is less than or equal to zero.`);
+        Guard.NegativeOrZero(currentHeight, `The value of the currentHeight parameter is less than or equal to zero.`);
+
         let width = this._bufferWidth;
         let height = this._bufferHeight;
-        let size = width * height;
-        let buffer = [...Array(size)].fill(new TerminalField(EMPTY_CHARACTER, this._foregroundColor, this._backgroundColor));
+        let size = this._bufferWidth * this._bufferHeight;
+        let newBuffer = [...Array(size)].fill(new TerminalField(EMPTY_CHARACTER, this._foregroundColor, this._backgroundColor));
+        let oldBufferAs2dArray = [...Array(currentHeight)].map(_=>Array(currentWidth).fill(new TerminalField()));
+        let oldLength = this._buffer.length;
+
+        for (let i = 0; i < size; i++) {
+            y = i / currentWidth;
+            x = i % currentWidth;
+
+            oldBufferAs2dArray[y][x] = this._buffer[i];
+        }
 
         for (let y = 0; y < height; y++) {
             for (let x = 0; x < width; x++) {
                 let index = y * width + x;
-                if (index >= this._buffer.length) break;
+                if (index >= oldLength) break;
                 
-                buffer[index] = this._bufferBackup[y][x];
+                newBuffer[index] = oldBufferAs2dArray[y][x];
             }
         }
 
-        this._buffer = buffer;
-    }
-
-    /**
-     * 
-     */
-    _revertBuffer() {
-        let width = this._bufferBackup[0].length;
-        let height = this._bufferBackup.length;
-        let size = width * height;
-        let buffer = [...Array(size)];
-
-        for (let y = 0; y < height; y++) {
-            for (let x = 0; x < width; x++) {
-                let index = y * width + x;
-                buffer[index] = this._bufferBackup[y][x];
-            }
-        }
-
-        this._backupBuffer();
-        this._buffer = buffer;
+        this._buffer = newBuffer;
     }
 
     /**
@@ -448,32 +422,32 @@ class Terminal {
      * @param {string} sourceChar The TerminalField used to fill the source area.
      * @param {Color} sourceForegroundColor The foreground color used to fill the source area.
      * @param {Color} sourceBackgroundColor The background color used to fill the source area.
-     * @throws {TypeError}
-     * @throws {RangeError}
+     * @throws {@link TypeError}
+     * @throws {@link RangeError}
      */
     MoveBufferArea(sourceLeft, sourceTop, sourceWidth, sourceHeight, targetLeft, targetTop, sourceChar = EMPTY_CHARACTER, sourceForegroundColor = this.foregroundColor, sourceBackgroundColor = this.backgroundColor) {
-        if (!Number.isInteger(sourceLeft)) throw new TypeError(`The value of the sourceLeft parameter got assigned a wrong type.`);
-        if (!Number.isInteger(sourceTop)) throw new TypeError(`The value of the sourceTop parameter got assigned a wrong type.`);
-        if (!Number.isInteger(sourceWidth)) throw new TypeError(`The value of the sourceWidth parameter got assigned a wrong type.`);
-        if (!Number.isInteger(sourceHeight)) throw new TypeError(`The value of the sourceHeight parameter got assigned a wrong type.`);
-        if (!Number.isInteger(targetLeft)) throw new TypeError(`The value of the targetLeft parameter got assigned a wrong type.`);
-        if (!Number.isInteger(targetTop)) throw new TypeError(`The value of the targetTop parameter got assigned a wrong type.`);
-        if (typeof sourceChar !== `string`) throw new TypeError(`The value of the sourceChar parameter got assigned a wrong type.`);
-        if (!sourceForegroundColor instanceof Color) throw new TypeError(`The value of the sourceForegroundColor parameter got assigned a wrong type.`);
-        if (!sourceBackgroundColor instanceof Color) throw new TypeError(`The value of the sourceBackgroundColor parameter got assigned a wrong type.`);
-        if (sourceLeft < 0) throw new RangeError(`The value of the sourceLeft parameter is less than zero.`);
-        if (sourceTop < 0) throw new RangeError(`The value of the sourceTop parameter is less than zero.`);
-        if (sourceWidth < 0) throw new RangeError(`The value of the sourceWidth parameter is less than zero.`);
-        if (sourceHeight < 0) throw new RangeError(`The value of the sourceHeight parameter is less than zero.`);
-        if (targetLeft < 0) throw new RangeError(`The value of the targetLeft parameter is less than zero.`);
-        if (targetTop < 0) throw new RangeError(`The value of the targetTop parameter is less than zero.`);
-        if (sourceLeft >= this._bufferWidth) throw new RangeError(`The value of the sourceLeft parameter is greater than or equal to bufferWidth.`);
-        if (sourceTop >= this._bufferHeight) throw new RangeError(`The value of the sourceTop parameter is greater than or equal to bufferHeight.`);
-        if (targetLeft >= this._bufferWidth) throw new RangeError(`The value of the targetLeft parameter is greater than or equal to bufferWidth.`);
-        if (targetTop >= this._bufferHeight) throw new RangeError(`The value of the targetTop parameter is greater than or equal to bufferHeight.`);
-        if (sourceLeft + sourceWidth >= this._bufferWidth) throw new RangeError(`The value of the sourceLeft parameter plus the value of the sourceWidth parameter is greater than or equal to bufferWidth.`);
-        if (sourceTop + sourceHeight >= this._bufferHeight) throw new RangeError(`The value of the sourceTop parameter plus the value of the sourceHeight parameter is greater than or equal to bufferHeight.`);
-        if (sourceChar.length > 1) throw new RangeError(`The value of the sourceChar parameter was not a single char.`);
+        Guard.NonNumber(sourceLeft, `The value of the sourceLeft parameter got assigned a wrong type.`);
+        Guard.NonNumber(sourceTop, `The value of the sourceTop parameter got assigned a wrong type.`);
+        Guard.NonNumber(sourceWidth, `The value of the sourceWidth parameter got assigned a wrong type.`);
+        Guard.NonNumber(sourceHeight, `The value of the sourceHeight parameter got assigned a wrong type.`);
+        Guard.NonNumber(targetLeft, `The value of the targetLeft parameter got assigned a wrong type.`);
+        Guard.NonNumber(targetTop, `The value of the targetTop parameter got assigned a wrong type.`);
+        Guard.NonString(sourceChar, `The value of the sourceChar parameter got assigned a wrong type.`);
+        Guard.NonInstanceOf(sourceForegroundColor, TerminalColor, `The value of the sourceForegroundColor parameter got assigned a wrong type.`);
+        Guard.NonInstanceOf(sourceBackgroundColor, TerminalColor, `The value of the sourceBackgroundColor parameter got assigned a wrong type.`);
+        Guard.Negative(sourceLeft, `The value of the sourceLeft parameter is less than zero.`);
+        Guard.Negative(sourceTop, `The value of the sourceTop parameter is less than zero.`);
+        Guard.Negative(sourceWidth, `The value of the sourceWidth parameter is less than zero.`);
+        Guard.Negative(sourceHeight, `The value of the sourceHeight parameter is less than zero.`);
+        Guard.Negative(targetLeft, `The value of the targetLeft parameter is less than zero.`);
+        Guard.Negative(targetTop, `The value of the targetTop parameter is less than zero.`);
+        Guard.BiggerThenOrEqual(sourceLeft, this._bufferWidth, `The value of the sourceLeft parameter is greater than or equal to bufferWidth.`);
+        Guard.BiggerThenOrEqual(sourceTop, this._bufferHeight, `The value of the sourceTop parameter is greater than or equal to bufferHeight.`);
+        Guard.BiggerThenOrEqual(targetLeft, this._bufferWidth, `The value of the targetLeft parameter is greater than or equal to bufferWidth.`);
+        Guard.BiggerThenOrEqual(targetTop, this._bufferHeight, `The value of the targetTop parameter is greater than or equal to bufferWidth.`);
+        Guard.BiggerThenOrEqual(sourceLeft + sourceWidth, this._bufferWidth, `The value of the sourceLeft parameter plus the value of the sourceWidth parameter is greater than or equal to bufferWidth.`);
+        Guard.BiggerThenOrEqual(sourceTop + sourceHeight, this._bufferHeight, `The value of the sourceTop parameter plus the value of the sourceHeight parameter is greater than or equal to bufferHeight.`);
+        Guard.NonChar(sourceChar, `The value of the sourceChar parameter was not a single char.`);
 
         if (sourceLeft === targetLeft && sourceTop === targetTop) return;
 
@@ -517,7 +491,7 @@ class Terminal {
      * @param {boolean} intercept Determines whether to display the pressed key in the terminal window. `true` to not display the pressed key; otherwise, `false`.
      */
     ReadKey(intercept = false) {
-        if (typeof intercept !== `boolean`) throw new TypeError(`The value of the intercept parameter got assigned a wrong type.`);
+        Guard.NonBoolean(intercept, `The value of the intercept parameter got assigned a wrong type.`);
     }
 
     /**
@@ -539,41 +513,43 @@ class Terminal {
      * Sets the height and width of the screen buffer area to the specified values.
      * @param {number} width The width of the buffer area measured in columns.
      * @param {number} height The height of the buffer area measured in rows.
-     * @throws {TypeError}
-     * @throws {RangeError}
+     * @throws {@link TypeError}
+     * @throws {@link RangeError}
      */
     SetBufferSize(width, height) {
-        if (!Number.isInteger(width)) throw new TypeError(`The value of the width parameter got assigned a wrong type.`);
-        if (!Number.isInteger(height)) throw new TypeError(`The value of the height parameter got assigned a wrong type.`);
-        if (width <= 0) throw new RangeError(`The value of the width parameter is less than or equal to zero.`);
-        if (height <= 0) throw new RangeError(`The value of the height parameter is less than or equal to zero.`);
-        if (width >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the width parameter is greater than or equal to Number.MAX_SAFE_INTEGER.`);
-        if (height >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the height parameter is greater than or equal to Number.MAX_SAFE_INTEGER.`);
-        if (width < this._windowLeft + this._windowWidth) throw new RangeError(`The value of the width parameter is less than the windowLeft property plus the windowWidth property.`);
-        if (height < this._windowTop + this._windowHeight) throw new RangeError(`The value of the height parameter is less than the windowTop property plus the windowHeight property.`);
+        Guard.NonNumber(width, `The value of the width parameter got assigned a wrong type.`);
+        Guard.NonNumber(height, `The value of the height parameter got assigned a wrong type.`);
+        Guard.NegativeOrZero(width, `The value of the width parameter is less than or equal to zero.`);
+        Guard.NegativeOrZero(height, `The value of the height parameter is less than or equal to zero.`);
+        Guard.BiggerThenOrEqual(width, Number.MAX_SAFE_INTEGER, `The value of the width parameter is greater than or equal to Number.MAX_SAFE_INTEGER.`);
+        Guard.BiggerThenOrEqual(height, Number.MAX_SAFE_INTEGER, `The value of the height parameter is greater than or equal to Number.MAX_SAFE_INTEGER.`);
+        Guard.LessThen(width, this._windowLeft + this._windowWidth, `The value of the width parameter is less than the windowLeft property plus the windowWidth property.`);
+        Guard.LessThen(height, this._windowTop + this._windowHeight, `The value of the height parameter is less than the windowTop property plus the windowHeight property.`);
 
         if (this._bufferWidth === width && this._bufferHeight === height) return;
 
-        this._backupBuffer();
+        let currentWidth = this._bufferWidth;
+        let currentHeight = this._bufferHeight;
+
         this._bufferWidth = width;
         this._bufferHeight = height;
-        this._resizeBuffer();
+        this._resizeBuffer(currentWidth, currentHeight);
     }
 
     /**
      * Sets the position of the cursor.
      * @param {number} left The column position of the cursor. Columns are numbered from left to right starting at 0.
      * @param {number} top The row position of the cursor. Rows are numbered from top to bottom starting at 0.
-     * @throws {TypeError}
-     * @throws {RangeError}
+     * @throws {@link TypeError}
+     * @throws {@link RangeError}
      */
     SetCursorPosition(left, top) {
-        if (!Number.isInteger(left)) throw new TypeError(`The value of the left parameter got assigned a wrong type.`);
-        if (!Number.isInteger(top)) throw new TypeError(`The value of the top parameter got assigned a wrong type.`);
-        if (left < 0) throw new RangeError(`The value of the left parameter is less than zero.`);
-        if (top < 0) throw new RangeError(`The value of the top parameter is less than zero.`);
-        if (left > this._bufferWidth) throw new RangeError(`The value of the left parameter is greater than or equal to bufferWidth.`);
-        if (top >= this._bufferHeight) throw new RangeError(`The value of the top parameter is greater than or equal to bufferHeight.`);
+        Guard.NonNumber(left, `The value of the left parameter got assigned a wrong type.`);
+        Guard.NonNumber(top, `The value of the top parameter got assigned a wrong type.`);
+        Guard.Negative(left, `The value of the left parameter is less than zero.`);
+        Guard.Negative(top, `The value of the top parameter is less than zero.`);
+        Guard.BiggerThenOrEqual(left, this._bufferWidth, `The value of the left parameter is greater than or equal to bufferWidth.`);
+        Guard.BiggerThenOrEqual(top, this._bufferHeight, `The value of the top parameter is greater than or equal to bufferHeight.`);
 
         if (this._cursorLeft === left && this._cursorTop === top) return;
 
@@ -585,16 +561,16 @@ class Terminal {
      * Sets the position of the terminal window relative to the screen buffer.
      * @param {number} left The column position of the upper left corner of the terminal window.
      * @param {number} top The row position of the upper left corner of the terminal window.
-     * @throws {TypeError}
-     * @throws {RangeError}
+     * @throws {@link TypeError}
+     * @throws {@link RangeError}
      */
     SetWindowPosition(left, top) {
-        if (!Number.isInteger(left)) throw new TypeError(`The value of the left parameter got assigned a wrong type.`);
-        if (!Number.isInteger(top)) throw new TypeError(`The value of the top parameter got assigned a wrong type.`);
-        if (left < 0) throw new RangeError(`The value of the left parameter is less than zero.`);
-        if (top < 0) throw new RangeError(`The value of the top parameter is less than zero.`);
-        if (left + this._windowWidth > this._bufferWidth) throw new RangeError(`The value of the left parameter plus the value of the windowWidth property is greater than bufferWidth.`);
-        if (top + this._windowHeight > this._bufferHeight) throw new RangeError(`The value of the top parameter plus the value of the windowHeight property is greater than bufferHeight.`);
+        Guard.NonNumber(left, `The value of the left parameter got assigned a wrong type.`);
+        Guard.NonNumber(top, `The value of the top parameter got assigned a wrong type.`);
+        Guard.Negative(left, `The value of the left parameter is less than zero.`);
+        Guard.Negative(top, `The value of the top parameter is less than zero.`);
+        Guard.BiggerThen(left + this._windowWidth, this._bufferWidth, `The value of the left parameter plus the value of the windowWidth property is greater than bufferWidth.`);
+        Guard.BiggerThen(top + this._windowHeight, this._bufferHeight, `The value of the top parameter plus the value of the windowHeight property is greater than bufferHeight.`);
 
         if (this._windowLeft === left && this._windowTop === top) return;
 
@@ -606,18 +582,18 @@ class Terminal {
      * Sets the height and width of the terminal window to the specified values.
      * @param {number} width The width of the terminal window measured in columns.
      * @param {number} height The height of the terminal window measured in rows.
-     * @throws {TypeError}
-     * @throws {RangeError}
+     * @throws {@link TypeError}
+     * @throws {@link RangeError}
      */
     SetWindowSize(width, height) {
-        if (!Number.isInteger(width)) throw new TypeError(`The value of the width parameter got assigned a wrong type.`);
-        if (!Number.isInteger(height)) throw new TypeError(`The value of the height parameter got assigned a wrong type.`);
-        if (width <= 0) throw new RangeError(`The value of the width parameter is less than or equal to zero.`);
-        if (height <= 0) throw new RangeError(`The value of the height parameter is less than or equal to zero.`);
-        if (width + this._windowLeft >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the width parameter plus the value of the windowLeft property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
-        if (height + this._windowTop >= Number.MAX_SAFE_INTEGER) throw new RangeError(`The value of the height parameter plus the value of the windowTop property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
-        if (width > this.largestWindowWidth) throw new RangeError(`The value of the width parameter is greater than the largest possible window width for the current screen resolution and font.`);
-        if (height > this.largestWindowHeight) throw new RangeError(`The value of the height parameter is greater than the largest possible window height for the current screen resolution and font.`);
+        Guard.NonNumber(width, `The value of the width parameter got assigned a wrong type.`);
+        Guard.NonNumber(height, `The value of the height parameter got assigned a wrong type.`);
+        Guard.NegativeOrZero(width, `The value of the width parameter is less than or equal to zero.`);
+        Guard.NegativeOrZero(height, `The value of the height parameter is less than or equal to zero.`);
+        Guard.BiggerThenOrEqual(width + this._windowLeft, Number.MAX_SAFE_INTEGER, `The value of the width parameter plus the value of the windowLeft property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
+        Guard.BiggerThenOrEqual(height + this._windowTop, Number.MAX_SAFE_INTEGER, `The value of the height parameter plus the value of the windowTop property is greater than or equal to Number.MAX_SAFE_INTEGER.`);
+        Guard.BiggerThen(width, this.largestWindowWidth, `The value of the width parameter is greater than the largest possible window width for the current screen resolution and font.`);
+        Guard.BiggerThen(height, this.largestWindowHeight, `The value of the height parameter is greater than the largest possible window height for the current screen resolution and font.`);
 
         if (this._windowWidth === width && this._windowHeight === height) return;
 
@@ -627,7 +603,7 @@ class Terminal {
 
     /**
      * Writes the text representation of the specified value to the standard output stream.
-     * @param {any} string 
+     * @param {any} value 
      */
     Write(value) {
 
@@ -635,7 +611,7 @@ class Terminal {
 
     /**
      * Writes the current line terminator to the standard output stream.
-     * @param {any} string 
+     * @param {any} value 
      */
     WriteLine(value = undefined) {
 
