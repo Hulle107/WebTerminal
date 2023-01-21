@@ -22,11 +22,6 @@ class Terminal {
     _buffer;
     /**
      * @private
-     * @type {TerminalField[][]}
-     */
-    _bufferBackup;
-    /**
-     * @private
      * @type {number}
      */
     _bufferHeight;
