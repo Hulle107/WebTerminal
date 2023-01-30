@@ -1,12 +1,54 @@
 `use strict`;
 
-import TerminalColor from "./lib/terminal.color";
-import TerminalField from "./lib/terminal.field";
-import Guard from "./lib/guard";
+import {Guard} from "./lib/guard";
+import {TerminalColor, TerminalColors} from "./lib/terminal.color";
+import {TerminalDisplay} from "./lib/terminal.display";
+import {TerminalField} from "./lib/terminal.field";
+import {TerminalKeyboard} from "./lib/terminal.keyboard";
+
+/**
+ * @typedef {object} TerminalArea
+ * @property {number} left
+ * @property {number} top
+ * @property {number} width
+ * @property {number} height
+ */
+
+/**
+ * @typedef {object} TerminalCoordinate
+ * @property {number} left
+ * @property {number} top
+ */
+
+/**
+ * @typedef {object} TerminalDisplayOptions
+ * @property {number | undefined} canvasWidth
+ * @property {number | undefined} canvasHeight
+ */
+
+/**
+ * @typedef {object} TerminalKeyInfo
+ * @property {number} keyCode
+ * @property {string} character
+ */
+
+/**
+ * @typedef {object} TerminalOptions
+ * @property {HTMLCanvasElement} canvas
+ * @property {TerminalColor | undefined} defualtBackgroundColor
+ * @property {TerminalColor | undefined} defualtForegroundColor
+ * @property {TerminalDisplayOptions | undefined} displayOptions
+ */
+
+/**
+ * @typedef {object} TerminalSize
+ * @property {number} width
+ * @property {number} height
+ */
 
 const EMPTY_CHARACTER = ``;
-const DEFUALT_BACKGROUND_COLOR = TerminalColor.Black;
-const DEFAULT_FOREGROUND_COLOR = TerminalColor.White;
+const DEFUALT_BACKGROUND_COLOR = TerminalColors.black;
+const DEFAULT_FOREGROUND_COLOR = TerminalColors.white;
 
 class Terminal {
 
@@ -54,7 +96,27 @@ class Terminal {
      * @private
      * @type {TerminalColor}
      */
+    _defualtBackgroundColor;
+    /**
+     * @private
+     * @type {TerminalColor}
+     */
+    _defualtForegroundColor;
+    /**
+     * @private
+     * @type {TerminalDisplay}
+     */
+    _display;
+    /**
+     * @private
+     * @type {TerminalColor}
+     */
     _foregroundColor;
+    /**
+     * @private
+     * @type {TerminalKeyboard}
+     */
+    _keyboard;
     /**
      * @private
      * @type {number}
@@ -87,13 +149,6 @@ class Terminal {
         Guard.NonInstanceOf(value, TerminalColor, `The value of the backgroundColor property got assigned a wrong type.`);
 
         this._backgroundColor = value;
-    }
-
-    /**
-     * Gets the buffer of the terminal.
-     */
-    get buffer() {
-        return this._buffer;
     }
 
     /**
@@ -143,13 +198,6 @@ class Terminal {
 
         this._bufferWidth = value;
         this._resizeBuffer(currentWidth, currentHeight);
-    }
-
-    /**
-     * Gets a value indicating whether the CAPS LOCK keyboard toggle is turned on or turned off.
-     */
-    get capsLock() {
-        
     }
 
     /**
@@ -236,34 +284,6 @@ class Terminal {
     }
 
     /**
-     * Gets a value indicating whether a key press is available in the input stream.
-     */
-    get keyAvailable() {
-
-    }
-
-    /**
-     * The height of the largest possible terminal window measured in rows.
-     */
-    get largestWindowHeight() {
-
-    }
-
-    /**
-     * The width of the largest possible terminal window measured in columns.
-     */
-    get largestWindowWidth() {
-
-    }
-
-    /**
-     * Gets a value indicating whether the NUM LOCK keyboard toggle is turned on or turned off.
-     */
-    get numberLock() {
-
-    }
-
-    /**
      * Gets or sets the height of the terminal window area.
      */
     get windowHeight() { return this._windowHeight; }
@@ -342,11 +362,78 @@ class Terminal {
     }
 
     /**
+     * Gets the buffer of the terminal.
+     */
+    get buffer() {
+        return this._buffer;
+    }
+
+    /**
+     * Gets a value indicating whether the CAPS LOCK keyboard toggle is turned on or turned off.
+     */
+    get capsLock() {
+        
+    }
+
+    /**
+     * Gets a value indicating whether a key press is available in the input stream.
+     */
+    get keyAvailable() {
+
+    }
+
+    /**
+     * The height of the largest possible terminal window measured in rows.
+     */
+    get largestWindowHeight() {
+
+    }
+
+    /**
+     * The width of the largest possible terminal window measured in columns.
+     */
+    get largestWindowWidth() {
+
+    }
+
+    /**
+     * Gets a value indicating whether the NUM LOCK keyboard toggle is turned on or turned off.
+     */
+    get numberLock() {
+
+    }
+
+    /**
      * 
-     * @param {*} options 
+     * @param {TerminalOptions} options
+     * @throws {TypeError}
      */
     constructor(options) {
+        Guard.Undefined(options, `The value of the option parameter got assigned as a undefined value.`);
+        Guard.NonInstanceOf(options.canvas, HTMLCanvasElement, `The value of the options.canvas parameter got assigned a wrong type.`);
+
+        this._defualtBackgroundColor = DEFUALT_BACKGROUND_COLOR;
+        this._defualtForegroundColor = DEFAULT_FOREGROUND_COLOR;
+
+        if (options.defualtBackgroundColor) {
+            Guard.NonInstanceOf(options.defualtBackgroundColor, TerminalColor, `The value of the options.defualtBackgroundColor parameter got assigned a wrong type.`);
+            this._defualtBackgroundColor = options.defualtBackgroundColor;
+        }
+
+        if (options.defualtForegroundColor) {
+            Guard.NonInstanceOf(options.defualtForegroundColor, TerminalColor, `The value of the options.defualtForegroundColor parameter got assigned a wrong type.`);
+            this._defualtForegroundColor = options.defualtForegroundColor;
+        }
+
+        const displayOptions = {
+            canvas: options.canvas,
+            canvasWidth: options.displayOptions.canvasWidth,
+            canvasHeight: options.displayOptions.canvasHeight,
+        }
+
         this._resizeBuffer();
+        this._display = new TerminalDisplay(displayOptions);
+        this._keyboard = new TerminalKeyboard();
     }
 
     /**
@@ -398,6 +485,7 @@ class Terminal {
 
     /**
      * Gets the position of the cursor.
+     * @returns {TerminalCoordinate}
      */
     GetCursorPosition() { 
         return { 
@@ -408,53 +496,52 @@ class Terminal {
 
     /**
      * Copies a specified source area of the screen buffer to a specified destination area.
-     * @param {number} sourceLeft The leftmost column of the source area.
-     * @param {number} sourceTop The topmost row of the source area.
-     * @param {number} sourceWidth The number of columns in the source area.
-     * @param {number} sourceHeight The number of rows in the source area.
-     * @param {number} targetLeft The leftmost column of the destination area.
+     * @param {TerminalArea} sourceArea The source area to move.
+     * @param {TerminalCoordinate} targetCoordinate The target coordinate of the source area.
      * @param {number} targetTop The topmost row of the destination area.
-     * @param {string} sourceChar The TerminalField used to fill the source area.
+     * @param {string} sourceChar The character used to fill the source area.
      * @param {Color} sourceForegroundColor The foreground color used to fill the source area.
      * @param {Color} sourceBackgroundColor The background color used to fill the source area.
      * @throws {@link TypeError}
      * @throws {@link RangeError}
      */
-    MoveBufferArea(sourceLeft, sourceTop, sourceWidth, sourceHeight, targetLeft, targetTop, sourceChar = EMPTY_CHARACTER, sourceForegroundColor = this.foregroundColor, sourceBackgroundColor = this.backgroundColor) {
-        Guard.NonNumber(sourceLeft, `The value of the sourceLeft parameter got assigned a wrong type.`);
-        Guard.NonNumber(sourceTop, `The value of the sourceTop parameter got assigned a wrong type.`);
-        Guard.NonNumber(sourceWidth, `The value of the sourceWidth parameter got assigned a wrong type.`);
-        Guard.NonNumber(sourceHeight, `The value of the sourceHeight parameter got assigned a wrong type.`);
-        Guard.NonNumber(targetLeft, `The value of the targetLeft parameter got assigned a wrong type.`);
-        Guard.NonNumber(targetTop, `The value of the targetTop parameter got assigned a wrong type.`);
+    MoveBufferArea(sourceArea, targetCoordinate, sourceChar = EMPTY_CHARACTER, sourceForegroundColor = this.foregroundColor, sourceBackgroundColor = this.backgroundColor) {
+        Guard.NonObject(sourceArea, `The value of the sourceArea parameter get assigned a non object.`);
+        Guard.NonObject(targetCoordinate, `The value of the targetCoordinate parameter get assigned a non object.`);
+        Guard.NonNumber(sourceArea.left, `The value of the sourceArea.left parameter got assigned a wrong type.`);
+        Guard.NonNumber(sourceArea.top, `The value of the sourceArea.top parameter got assigned a wrong type.`);
+        Guard.NonNumber(sourceArea.width, `The value of the sourceArea.width parameter got assigned a wrong type.`);
+        Guard.NonNumber(sourceArea.height, `The value of the sourceArea.height parameter got assigned a wrong type.`);
+        Guard.NonNumber(targetCoordinate.left, `The value of the targetCoordinate.left parameter got assigned a wrong type.`);
+        Guard.NonNumber(targetCoordinate.top, `The value of the targetCoordinate.top parameter got assigned a wrong type.`);
         Guard.NonString(sourceChar, `The value of the sourceChar parameter got assigned a wrong type.`);
         Guard.NonInstanceOf(sourceForegroundColor, TerminalColor, `The value of the sourceForegroundColor parameter got assigned a wrong type.`);
         Guard.NonInstanceOf(sourceBackgroundColor, TerminalColor, `The value of the sourceBackgroundColor parameter got assigned a wrong type.`);
-        Guard.Negative(sourceLeft, `The value of the sourceLeft parameter is less than zero.`);
-        Guard.Negative(sourceTop, `The value of the sourceTop parameter is less than zero.`);
-        Guard.Negative(sourceWidth, `The value of the sourceWidth parameter is less than zero.`);
-        Guard.Negative(sourceHeight, `The value of the sourceHeight parameter is less than zero.`);
-        Guard.Negative(targetLeft, `The value of the targetLeft parameter is less than zero.`);
-        Guard.Negative(targetTop, `The value of the targetTop parameter is less than zero.`);
-        Guard.BiggerThenOrEqual(sourceLeft, this._bufferWidth, `The value of the sourceLeft parameter is greater than or equal to bufferWidth.`);
-        Guard.BiggerThenOrEqual(sourceTop, this._bufferHeight, `The value of the sourceTop parameter is greater than or equal to bufferHeight.`);
-        Guard.BiggerThenOrEqual(targetLeft, this._bufferWidth, `The value of the targetLeft parameter is greater than or equal to bufferWidth.`);
-        Guard.BiggerThenOrEqual(targetTop, this._bufferHeight, `The value of the targetTop parameter is greater than or equal to bufferWidth.`);
-        Guard.BiggerThenOrEqual(sourceLeft + sourceWidth, this._bufferWidth, `The value of the sourceLeft parameter plus the value of the sourceWidth parameter is greater than or equal to bufferWidth.`);
-        Guard.BiggerThenOrEqual(sourceTop + sourceHeight, this._bufferHeight, `The value of the sourceTop parameter plus the value of the sourceHeight parameter is greater than or equal to bufferHeight.`);
+        Guard.Negative(sourceArea.left, `The value of the sourceArea.left parameter is less than zero.`);
+        Guard.Negative(sourceArea.top, `The value of the sourceArea.top parameter is less than zero.`);
+        Guard.Negative(sourceArea.width, `The value of the sourceArea.width parameter is less than zero.`);
+        Guard.Negative(sourceArea.height, `The value of the sourceArea.height parameter is less than zero.`);
+        Guard.Negative(targetCoordinate.left, `The value of the targetCoordinate.left parameter is less than zero.`);
+        Guard.Negative(targetCoordinate.top, `The value of the targetCoordinate.top parameter is less than zero.`);
+        Guard.BiggerThenOrEqual(sourceArea.left, this._bufferWidth, `The value of the sourceArea.left parameter is greater than or equal to bufferWidth.`);
+        Guard.BiggerThenOrEqual(sourceArea.top, this._bufferHeight, `The value of the sourceArea.top parameter is greater than or equal to bufferHeight.`);
+        Guard.BiggerThenOrEqual(targetCoordinate.left, this._bufferWidth, `The value of the targetCoordinate.left parameter is greater than or equal to bufferWidth.`);
+        Guard.BiggerThenOrEqual(targetCoordinate.top, this._bufferHeight, `The value of the targetCoordinate.top parameter is greater than or equal to bufferWidth.`);
+        Guard.BiggerThenOrEqual(sourceArea.left + sourceArea.width, this._bufferWidth, `The value of the sourceArea.left parameter plus the value of the sourceArea.width parameter is greater than or equal to bufferWidth.`);
+        Guard.BiggerThenOrEqual(sourceArea.top + sourceArea.height, this._bufferHeight, `The value of the sourceArea.top parameter plus the value of the sourceArea.height parameter is greater than or equal to bufferHeight.`);
         Guard.NonChar(sourceChar, `The value of the sourceChar parameter was not a single char.`);
 
-        if (sourceLeft === targetLeft && sourceTop === targetTop) return;
+        if (sourceArea.left === targetCoordinate.left && sourceArea.top === targetCoordinate.top) return;
 
         let width = this._bufferWidth;
-        let size = sourceWidth * sourceHeight;
+        let size = sourceArea.width * sourceArea.height;
         let buffer = [...Array(size)];
 
-        for (let y = sourceTop; y < sourceTop + sourceHeight; y++) {
-            for (let x = sourceLeft; x < sourceLeft + sourceWidth; x++) {
+        for (let y = sourceArea.top; y < sourceArea.top + sourceArea.height; y++) {
+            for (let x = sourceArea.left; x < sourceArea.left + sourceArea.width; x++) {
                 let index = y * width + y;
-                let offsetY = y - sourceTop;
-                let offsetX = x - sourceLeft;
+                let offsetY = y - sourceArea.top;
+                let offsetX = x - sourceArea.left;
                 let offsetIndex = offsetY * width + offsetX;
 
                 buffer[offsetIndex] = this._buffer[index];
@@ -462,11 +549,11 @@ class Terminal {
             }
         }
 
-        for (let y = targetTop; y < targetTop + sourceHeight; y++) {
-            for (let x = targetLeft; x < targetLeft + sourceWidth; x++) {
+        for (let y = targetCoordinate.top; y < targetCoordinate.top + sourceArea.height; y++) {
+            for (let x = targetCoordinate.left; x < targetCoordinate.left + sourceArea.width; x++) {
                 let index = y * width + x;
-                let offsetY = y - targetTop;
-                let offsetX = x - targetLeft;
+                let offsetY = y - targetCoordinate.top;
+                let offsetX = x - targetCoordinate.left;
                 let offsetIndex = offsetY * width + offsetX;
 
                 this._buffer[index] = buffer[offsetIndex];
@@ -475,59 +562,53 @@ class Terminal {
     }
 
     /**
-     * Reads the next TerminalField from the standard input stream.
-     */
-    Read() {
-
-    }
-
-    /**
-     * Obtains the next TerminalField or function key pressed by the user. The pressed key is displayed in the terminal window.
+     * Obtains the next character or function key pressed by the user. The pressed key is displayed in the terminal window.
      * @param {boolean} intercept Determines whether to display the pressed key in the terminal window. `true` to not display the pressed key; otherwise, `false`.
      */
-    ReadKey(intercept = false) {
+    async Read(intercept = false) {
         Guard.NonBoolean(intercept, `The value of the intercept parameter got assigned a wrong type.`);
     }
 
     /**
-     * Reads the next line of TerminalFields from the standard input stream.
+     * Obtains the next line of characters pressed by the user and is ended by the `Enter` key. The pressed keys is displayed in the terminal window.
+     * @param {boolean} intercept Determines whether to display the pressed keys in the terminal window. `true` to not display the pressed keys; otherwise, `false`.
      */
-    ReadLine() {
-
+    async ReadLine(intercept = false) {
+        Guard.NonBoolean(intercept, `The value of the intercept parameter got assigned a wrong type.`);
     }
 
     /**
      * Sets the foreground and background terminal colors to their defaults.
      */
     ResetColor() {
-        this._foregroundColor = DEFAULT_FOREGROUND_COLOR;
-        this._backgroundColor = DEFUALT_BACKGROUND_COLOR;
+        this._foregroundColor = this._defualtBackgroundColor;
+        this._backgroundColor = this._defualtForegroundColor;
     }
 
     /**
      * Sets the height and width of the screen buffer area to the specified values.
-     * @param {number} width The width of the buffer area measured in columns.
-     * @param {number} height The height of the buffer area measured in rows.
+     * @param {TerminalSize} size The size of the buffer area measured in columns and rows.
      * @throws {@link TypeError}
      * @throws {@link RangeError}
      */
-    SetBufferSize(width, height) {
-        Guard.NonNumber(width, `The value of the width parameter got assigned a wrong type.`);
-        Guard.NonNumber(height, `The value of the height parameter got assigned a wrong type.`);
-        Guard.NegativeOrZero(width, `The value of the width parameter is less than or equal to zero.`);
-        Guard.NegativeOrZero(height, `The value of the height parameter is less than or equal to zero.`);
-        Guard.BiggerThenOrEqual(width, Number.MAX_SAFE_INTEGER, `The value of the width parameter is greater than or equal to Number.MAX_SAFE_INTEGER.`);
-        Guard.BiggerThenOrEqual(height, Number.MAX_SAFE_INTEGER, `The value of the height parameter is greater than or equal to Number.MAX_SAFE_INTEGER.`);
-        Guard.LessThen(width, this._windowLeft + this._windowWidth, `The value of the width parameter is less than the windowLeft property plus the windowWidth property.`);
-        Guard.LessThen(height, this._windowTop + this._windowHeight, `The value of the height parameter is less than the windowTop property plus the windowHeight property.`);
+    SetBufferSize(size) {
+        Guard.NonObject(size, `The value of the size parameter get assigned a non object.`);
+        Guard.NonNumber(size.width, `The value of the width parameter got assigned a wrong type.`);
+        Guard.NonNumber(size.height, `The value of the height parameter got assigned a wrong type.`);
+        Guard.NegativeOrZero(size.width, `The value of the width parameter is less than or equal to zero.`);
+        Guard.NegativeOrZero(size.height, `The value of the height parameter is less than or equal to zero.`);
+        Guard.BiggerThenOrEqual(size.width, Number.MAX_SAFE_INTEGER, `The value of the width parameter is greater than or equal to Number.MAX_SAFE_INTEGER.`);
+        Guard.BiggerThenOrEqual(size.height, Number.MAX_SAFE_INTEGER, `The value of the height parameter is greater than or equal to Number.MAX_SAFE_INTEGER.`);
+        Guard.LessThen(size.width, this._windowLeft + this._windowWidth, `The value of the width parameter is less than the windowLeft property plus the windowWidth property.`);
+        Guard.LessThen(size.height, this._windowTop + this._windowHeight, `The value of the height parameter is less than the windowTop property plus the windowHeight property.`);
 
-        if (this._bufferWidth === width && this._bufferHeight === height) return;
+        if (this._bufferWidth === size.width && this._bufferHeight === size.height) return;
 
         let currentWidth = this._bufferWidth;
         let currentHeight = this._bufferHeight;
 
-        this._bufferWidth = width;
-        this._bufferHeight = height;
+        this._bufferWidth = size.width;
+        this._bufferHeight = size.height;
         this._resizeBuffer(currentWidth, currentHeight);
     }
 
@@ -618,5 +699,6 @@ export default Terminal;
 export {
     Terminal,
     TerminalColor,
+    TerminalColors,
     TerminalField
 }
