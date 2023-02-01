@@ -1,10 +1,3 @@
-export declare interface TerminalArea {
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-}
-
 export declare interface TerminalSize {
     width: number;
     height: number;
@@ -15,19 +8,62 @@ export declare interface TerminalCoordinate {
     top: number;
 }
 
+export declare interface TerminalArea {
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+}
+
 export declare interface TerminalKeyInfo {
     keyCode: number;
     character: string;
 }
 
+export declare interface TerminalColor {
+    name: string;
+    styleString: string;
+}
+
+export declare interface TerminalColors {
+    black: TerminalColor,
+    blue: TerminalColor,
+    cyan: TerminalColor;
+    darkBlue: TerminalColor;
+    darkCyan: TerminalColor;
+    darkGray: TerminalColor;
+    darkGreen: TerminalColor;
+    darkMagenta: TerminalColor;
+    darkRed: TerminalColor;
+    darkYellow: TerminalColor;
+    gray: TerminalColor;
+    green: TerminalColor;
+    magenta: TerminalColor;
+    red: TerminalColor;
+    white: TerminalColor;
+    yellow: TerminalColor;
+}
+
+export declare interface TerminalField {
+    character: string;
+    backgroundColor: TerminalColor;
+    foregroundColor: TerminalColor;
+}
+
 export declare interface TerminalOptions {
-    canvas: HTMLCanvasElement;
     defualtBackgroundColor?: TerminalColor;
     defaultForegroundColor?: TerminalColor;
-    displayOptions?: {
-        canvasWidth?: number;
-        canvasHeight?: number;
-    };
+    terminalDisplay?: TerminalDisplay;
+    terminalKeyboard?: TerminalKeyboard;
+}
+
+export declare interface TerminalDisplayOptions {
+    canvas: HTMLCanvasElement;
+    canvasWidth?: number;
+    canvasHeight?: number;
+}
+
+export declare interface TerminalKeyboardOptions {
 }
 
 export declare class Terminal {
@@ -52,9 +88,9 @@ export declare class Terminal {
     constructor(options: TerminalOptions);
     Clear(): void;
     GetCursorPosition(): TerminalCoordinate;
-    MoveBufferArea(sourceArea: TerminalArea, targetCoordinate: TerminalCoordinate, sourceChar?: string, sourceForegroundColor?: TerminalColor, sourceBackgroundColor?: TerminalColor): void;
+    MoveBufferArea(sourceArea: TerminalArea, targetCoordinate: TerminalCoordinate, replace?: TerminalField): void;
     async Read(intercept?: boolean): Promise<TerminalKeyInfo>;
-    async ReadLine(intercept?: boolean): Promise<string?>;
+    async ReadLine(intercept?: boolean): Promise<string|undefined>;
     ResetColor(): void;
     SetBufferSize(size: TerminalSize): void;
     SetCursorPosition(coordinate: TerminalCoordinate): void;
@@ -64,47 +100,10 @@ export declare class Terminal {
     WriteLine(value?: string): void;
 }
 
-export declare class TerminalColor {
-    color: string;
-    constructor(color: string);
-}
-
-export declare interface TerminalColors {
-    black: TerminalColor,
-    blue: TerminalColor,
-    cyan: TerminalColor;
-    darkBlue: TerminalColor;
-    darkCyan: TerminalColor;
-    darkGray: TerminalColor;
-    darkGreen: TerminalColor;
-    darkMagenta: TerminalColor;
-    darkRed: TerminalColor;
-    darkYellow: TerminalColor;
-    gray: TerminalColor;
-    green: TerminalColor;
-    magenta: TerminalColor;
-    red: TerminalColor;
-    white: TerminalColor;
-    yellow: TerminalColor;
-}
-
-export declare interface TerminalDisplayOptions {
-    canvas: HTMLCanvasElement;
-    canvasWidth?: number;
-    canvasHeight?: number;
-}
-
 export declare class TerminalDisplay {
     constructor(options: TerminalDisplayOptions);
 }
 
-export declare class TerminalField {
-    backgroundColor: TerminalColor;
-    character: string;
-    foregroundColor: TerminalColor;
-    constructor(character: string, foregroundColor: TerminalColor, backgroundColor: TerminalColor);
-}
-
 export declare class TerminalKeyboard {
-
+    constructor(options: TerminalKeyboardOptions);
 }
